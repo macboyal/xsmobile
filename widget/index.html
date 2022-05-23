@@ -8,7 +8,7 @@
       keepOn: true
     });
     var header = document.querySelector('#header');
-    $api.fixStatusBar(header);
+    header.style.paddingTop = api.safeArea.top + 'px';
   };
 
   var hasPermission = function hasPermission(one_per) {
