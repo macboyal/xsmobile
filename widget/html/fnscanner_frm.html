@@ -1,0 +1,209 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="maximum-scale=1.0, minimum-scale=1.0, user-scalable=0, initial-scale=1.0, width=device-width"/>
+  <meta name="format-detection" content="telephone=no, email=no, date=no, address=no">
+  <title>wifi_frm</title>
+  <link rel="stylesheet" type="text/css" href="../css/api.css"/>
+  <link rel="stylesheet" type="text/css" href="../css/box.css"/>
+  <style media="screen">
+    html,
+    body {
+      background: #06091C;
+    }
+
+    header {
+      position: relative;
+      width: 100%;
+      height: 44px;
+      line-height: 44px;
+      background-image: url('../image/title.png');
+      background-repeat: no-repeat, repeat;
+      background-size: 100% 100%;
+    }
+
+    .header .left {
+      position: absolute;
+      left: 0px;
+      bottom: 0px;
+      width: 44px;
+      height: 44px;
+      background: url(../image/icon/back.png);
+      background-position: center center;
+      background-size: 44px 44px;
+      background-repeat: no-repeat;
+    }
+
+    .header .title {
+      text-align: center;
+      line-height: 44px;
+      font-size: 16px;
+      color: #fff;
+      padding-right: 44px;
+      padding-left: 44px;
+    }
+
+  </style>
+</head>
+
+<body>
+<!-- 头部 -->
+<header id="header">
+  <div class="header">
+    <div class="left" tapmode onclick="back()"></div>
+    <div class="title">扫一扫</div>
+  </div>
+</header>
+</body>
+<script src="../js/api.js"></script>
+<script>
+  var FNScanner, eHeader, headerH;
+  apiready = function () {
+    //应用全局FNScanner模块
+    FNScanner = api.require('FNScanner');
+    //定义根据id获取dom
+    eHeader = $api.byId('header');
+    //设置头部沉浸式
+    $api.fixStatusBar(eHeader);
+    //获取头部高度
+    headerH = $api.offset(eHeader).h;
+
+    //监听应用回到前台
+    api.addEventListener({
+      name: 'resume'
+    }, function (ret, err) {
+      FNScanner.onResume();
+    });
+
+    //监听应用回到后台
+    api.addEventListener({
+      name: 'pause'
+    }, function (ret, err) {
+      FNScanner.onPause();
+    });
+    // 打开后置摄像头扫码
+    fnOpenFNScanner();
+    api.addEventListener({
+      name: 'fnOpenLamp'
+    }, function () {
+      fnOpenLamp();
+    });
+  }
+
+  function fnOpenFNScanner() {
+    // 打开指定自定义模块
+    FNScanner.openView({
+      //autorotation: true,
+      fixedOn: api.frameName,
+      rect: {
+        x: 0,
+        y: headerH,
+        w: api.frameWidth,
+        h: api.frameHeight
+      }
+    }, function (ret, err) {
+      if (ret) {
+        if (ret.eventType == 'success' && ret.content != '') {
+          // 扫码成功执行函数操作传值
+          fnOpenCouple(ret.content);
+          return;
+        }
+        if (ret.eventType == 'cameraError') {
+          api.toast({
+            msg: '请开启app访问手机摄像头权限',
+            duration: 2000,
+            location: 'bottom'
+          });
+          setTimeout(function () {
+            // 关闭扫码器  关闭扫码界面
+            back();
+          }, 300);
+          return;
+        }
+        if (ret.eventType == 'albumError') {
+          api.toast({
+            msg: '请开启app访问手机相册权限',
+            duration: 2000,
+            location: 'bottom'
+          });
+          setTimeout(function () {
+            back();
+          }, 300);
+          return;
+        }
+        if (ret.eventType == 'fail') {
+          api.toast({
+            msg: '扫码失败,请从新扫码',
+            duration: 2000,
+            location: 'bottom'
+          });
+          setTimeout(function () {
+            back();
+          }, 300);
+        }
+      } else {
+        api.toast({
+          msg: '扫码错误请稍后再试',
+          duration: 2000,
+          location: 'bottom'
+        });
+        setTimeout(function () {
+          back();
+        }, 300);
+      }
+    });
+    setTimeout(function () {
+      // 打开扫码动画frm页面
+      api.openFrame({
+        name: 'add_frm',
+        url: './add_frm.html',
+        rect: {
+          marginTop: headerH,
+          marginLeft: 0,
+          marginRight: 0,
+          marginBottom: 0
+        },
+        bgColor: 'rgba(0,0,0,0)',
+      });
+    }, 300);
+  }
+
+  //返回
+  function back(content) {
+    // 关闭win页面
+    api.closeWin();
+    // 关闭扫码模块
+    FNScanner.closeView();
+    if (content) {
+      api.sendEvent({
+        name: "closeScranner",
+        extra: {
+          content: content
+        }
+      });
+    }
+  }
+  var isSOff = true;
+  function fnOpenLamp() {
+    if (isSOff) {
+      FNScanner.switchLight({
+        status: 'on'
+      });
+      isSOff = false;
+    } else {
+      FNScanner.switchLight({
+        status: 'off'
+      });
+      isSOff = true;
+    }
+  }
+
+  //打开最后扫码得出的数值
+  function fnOpenCouple(content) {
+    back(content); //建议打开下一页我这块只是为了方便直接调用返回按钮   扫码成功之后必须关闭扫码模块  不然会出现多次扫码情况
+  }
+</script>
+
+</html>
